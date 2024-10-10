@@ -232,38 +232,42 @@
       }
       //////////////////////////////////////
 
-      // Tạo loader để nạp texture từ file .jpg
+  
+
+      // Khởi tạo TextureLoader
       let textureLoader = new THREE.TextureLoader();
 
-      // Tải texture từ file .jpg
-      textureLoader.load(
-        'thocon.jpg',
-        function (texture) {
-          console.log("Texture loaded:", texture); // Kiểm tra xem texture có được tải đúng hay không
-          sphereMaterial.map = texture; // Gán texture sau khi tải xong
-          sphereMaterial.needsUpdate = true; // Cập nhật lại vật liệu
-        },
-        undefined,
-        function (error) {
-          console.error("Error loading texture:", error); // Báo lỗi nếu xảy ra
-        }
-      );
+      // Tải các ảnh cho mỗi mặt của hình lập phương
+      let textures = [
+        textureLoader.load('thocon.jpg'),
+        textureLoader.load('thocon1.jpg'),
+        textureLoader.load('thocon2.jpg'),
+        textureLoader.load('thocon3.jpg'),
+        textureLoader.load('thocon4.jpg'),
+        textureLoader.load('thocon5.jpg'),
+      ];
 
-      // Tạo vật liệu với texture
-      let sphereMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffffff, // Đặt màu trắng để texture hiển thị rõ
-        map: null, // Chúng ta sẽ gán texture sau khi tải xong
-      });
+      // Tạo mảng vật liệu với texture khác nhau cho mỗi mặt
+      let cubeMaterials = [
+        new THREE.MeshBasicMaterial({ map: textures[0] }), // Mặt 1
+        new THREE.MeshBasicMaterial({ map: textures[1] }), // Mặt 2
+        new THREE.MeshBasicMaterial({ map: textures[2] }), // Mặt 3
+        new THREE.MeshBasicMaterial({ map: textures[3] }), // Mặt 4
+        new THREE.MeshBasicMaterial({ map: textures[4] }), // Mặt 5
+        new THREE.MeshBasicMaterial({ map: textures[5] }), // Mặt 6
+      ];
 
-      // Tạo khối cầu ở trung tâm
-      let sphereGeometry = new THREE.SphereGeometry(1, 32, 32); // Bán kính 1
-      let sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      // Tạo hình lập phương (BoxGeometry)
+      let cubeGeometry = new THREE.BoxGeometry(2, 2, 2); // Kích thước hình lập phương 2x2x2
 
-      // Đặt khối cầu ở trung tâm
-      sphere.position.set(0, 0, 0);
+      // Tạo hình lập phương với các mặt được gán ảnh
+      let cube = new THREE.Mesh(cubeGeometry, cubeMaterials);
 
-      // Thêm khối cầu vào cảnh
-      scene.add(sphere);
+      // Đặt hình lập phương tại vị trí trung tâm
+      cube.position.set(0, 0, 0);
+
+      // Thêm hình lập phương vào cảnh
+      scene.add(cube);
 
       //////////////////////////////////////////////
       // Trong vòng lặp animation chính, cập nhật để khối cầu xoay theo cùng với toàn cảnh (universal)
@@ -275,8 +279,9 @@
         // Tăng tốc độ quay của toàn cảnh
         p.rotation.y = t * 0.2;
 
-        // Đồng bộ xoay khối cầu với cảnh
-        sphere.rotation.y = t * 0.2; // Xoay khối cầu theo trục y (cùng tốc độ với p)
+        // Xoay hình lập phương cùng với cảnh
+        cube.rotation.y = t * 0.2;
+        cube.rotation.x = t * 0.1;
 
         animateMeteors(); // Cập nhật vị trí sao băng
 
