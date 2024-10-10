@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Three.js Example</title>
+    <style>
+      body {
+        margin: 0;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
+      import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls";
+
+      // Paste your JavaScript code here
+      console.clear();
+
+      let scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x160016);
+      let camera = new THREE.PerspectiveCamera(
+        60,
+        innerWidth / innerHeight,
+        1,
+        1000
+      );
+      camera.position.set(0, 4, 21);
+      let renderer = new THREE.WebGLRenderer();
+      renderer.setSize(innerWidth, innerHeight);
+      document.body.appendChild(renderer.domElement);
+      window.addEventListener("resize", (event) => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+
+      let controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.enablePan = false;
+
+      let gu = {
+        time: { value: 0 },
+      };
+
+      let sizes = [];
+      let shift = [];
+      let pushShift = () => {
+        shift.push(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI * 2,
+          (Math.random() * 0.9 + 0.1) * Math.PI * 0.1,
+          Math.random() * 0.9 + 0.1
+        );
+      };
+      let pts = new Array(25000).fill().map((p) => {
+        sizes.push(Math.random() * 1.5 + 0.5);
+        pushShift();
+        return new THREE.Vector3()
+          .randomDirection()
+          .multiplyScalar(Math.random() * 0.5 + 9.5);
+      });
+      for (let i = 0; i < 50000; i++) {
+        let r = 10,
+          R = 40;
+        let rand = Math.pow(Math.random(), 1.5);
+        let radius = Math.sqrt(R * R * rand + (1 - rand) * r * r);
+        pts.push(
+          new THREE.Vector3().setFromCylindricalCoords(
+            radius,
+            Math.random() * 2 * Math.PI,
+            (Math.random() - 0.5) * 2
+          )
+        );
+        sizes.push(Math.random() * 1.5 + 0.5);
+        pushShift();
+      }
+
+      let g = new THREE.BufferGeometry().setFromPoints(pts);
+      g.setAttribute("sizes", new THREE.Float32BufferAttribute(sizes, 1));
+      g.setAttribute("shift", new THREE.Float32BufferAttribute(shift, 4));
+      let m = new THREE.PointsMaterial({
+        size: 0.1,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        onBeforeCompile: (shader) => {
+          shader.uniforms.time = gu.time;
+          shader.vertexShader = `
+          uniform float time;
+          attribute float sizes;
+          attribute vec4 shift;
+          varying vec3 vColor;
+          ${shader.vertexShader}
+        `
+            .replace(`gl_PointSize = size;`, `gl_PointSize = size * sizes;`)
+            .replace(
+              `#include <color_vertex>`,
+              `#include <color_vertex>
+            float d = length(abs(position) / vec3(40., 10., 40));
+            d = clamp(d, 0., 1.);
+            vColor = mix(vec3(227., 155., 0.), vec3(100., 50., 255.), d) / 255.;
+          `
+            )
+            .replace(
+              `#include <begin_vertex>`,
+              `#include <begin_vertex>
+            float t = time;
+            float moveT = mod(shift.x + shift.z * t, PI2);
+            float moveS = mod(shift.y + shift.z * t, PI2);
+            transformed += vec3(cos(moveS) * sin(moveT), cos(moveT), sin(moveS) * sin(moveT)) * shift.a;
+          `
+            );
+          console.log(shader.vertexShader);
+          shader.fragmentShader = `
+          varying vec3 vColor;
+          ${shader.fragmentShader}
+        `
+            .replace(
+              `#include <clipping_planes_fragment>`,
+              `#include <clipping_planes_fragment>
+            float d = length(gl_PointCoord.xy - 0.5);
+            if (d > 0.5) discard;
+          `
+            )
+            .replace(
+              `vec4 diffuseColor = vec4( diffuse, opacity );`,
+              `vec4 diffuseColor = vec4( vColor, smoothstep(0.5, 0.2, d) * 0.5 + 0.5 );`
+            );
+          console.log(shader.fragmentShader);
+        },
+      });
+      let p = new THREE.Points(g, m);
+      p.rotation.order = "ZYX";
+      p.rotation.z = 0.2;
+      scene.add(p);
+
+      let clock = new THREE.Clock();
+
+      let meteors = [];
+      function createMeteor() {
+        // Tạo sao băng nhỏ hơn với hình cầu
+        let geometry = new THREE.SphereGeometry(0.02, 12, 12); // Giảm kích thước hình cầu
+        let material = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Màu trắng cho sao băng
+
+        // Sao băng
+        let meteor = new THREE.Mesh(geometry, material);
+
+        // Đặt vị trí khởi đầu ở bên phải trên của màn hình
+        meteor.position.set(
+          Math.random() * 100 + 10, // x (bên phải màn hình)
+          Math.random() * 50 + 10, // y (phía trên)
+          Math.random() * 20 - 10 // z (độ sâu ngẫu nhiên)
+        );
+
+        // Vệt sáng (trail) mờ dần theo sau sao băng
+        let trailLength = 1.5; // Độ dài vệt sáng (ngắn hơn để tạo sự cân bằng)
+        let trailGeometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(
+            meteor.position.x,
+            meteor.position.y,
+            meteor.position.z
+          ),
+          new THREE.Vector3(
+            meteor.position.x + trailLength,
+            meteor.position.y + trailLength,
+            meteor.position.z
+          ),
+        ]);
+
+        let trailMaterial = new THREE.LineBasicMaterial({
+          color: 0xffffff, // Màu trắng cho vệt sáng
+          transparent: true,
+          opacity: 0.5, // Mờ dần theo sau
+        });
+
+        let trail = new THREE.Line(trailGeometry, trailMaterial);
+
+        scene.add(meteor);
+        scene.add(trail);
+
+        meteors.push({ meteor, trail, twinkleTime: Math.random() * 2 + 0.5 });
+      }
+
+      // Hiệu ứng lấp lánh cho sao băng
+      function twinkleMeteor(meteor, time, twinkleTime) {
+        meteor.material.opacity =
+          Math.abs(Math.sin(time / twinkleTime)) * 0.5 + 0.5; // Độ sáng lấp lánh ngẫu nhiên
+      }
+
+      // Cập nhật vị trí sao băng và vệt sáng
+      function animateMeteors() {
+        meteors.forEach((m) => {
+          let { meteor, trail, twinkleTime } = m;
+
+          // Di chuyển sao băng từ phải trên đến trái dưới
+          meteor.position.x -= 1; // Di chuyển về phía trái
+          meteor.position.y -= 0.5; // Di chuyển xuống dưới
+
+          // Cập nhật vị trí vệt sáng theo sao băng (vệt sáng theo sau sao băng)
+          let trailLength = 1.5;
+          let points = [
+            new THREE.Vector3(
+              meteor.position.x,
+              meteor.position.y,
+              meteor.position.z
+            ), // Vị trí hiện tại của sao băng (ở đầu)
+            new THREE.Vector3(
+              meteor.position.x + trailLength,
+              meteor.position.y + trailLength,
+              meteor.position.z
+            ), // Vị trí đuôi vệt sáng
+          ];
+          trail.geometry.setFromPoints(points);
+
+          // Tạo hiệu ứng lấp lánh cho sao băng
+          let time = clock.getElapsedTime();
+          twinkleMeteor(meteor, time, twinkleTime);
+
+          // Đặt lại sao băng khi ra khỏi màn hình
+          if (meteor.position.y < -5 || meteor.position.x < -10) {
+            meteor.position.set(
+              Math.random() * 50 + 10, // Đặt lại ở phía bên phải màn hình
+              Math.random() * 25 + 10, // Ngẫu nhiên ở phía trên
+              Math.random() * 20 - 10 // Độ sâu ngẫu nhiên
+            );
+          }
+        });
+      }
+      //////////////////////////////////////
+
+      // Tạo loader để nạp texture từ file .jpg
+      let textureLoader = new THREE.TextureLoader();
+
+      // Tải texture từ file .jpg
+      textureLoader.load(
+        'thocon.jpg',
+        function (texture) {
+          console.log("Texture loaded:", texture); // Kiểm tra xem texture có được tải đúng hay không
+          sphereMaterial.map = texture; // Gán texture sau khi tải xong
+          sphereMaterial.needsUpdate = true; // Cập nhật lại vật liệu
+        },
+        undefined,
+        function (error) {
+          console.error("Error loading texture:", error); // Báo lỗi nếu xảy ra
+        }
+      );
+
+      // Tạo vật liệu với texture
+      let sphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff, // Đặt màu trắng để texture hiển thị rõ
+        map: null, // Chúng ta sẽ gán texture sau khi tải xong
+      });
+
+      // Tạo khối cầu ở trung tâm
+      let sphereGeometry = new THREE.SphereGeometry(1, 32, 32); // Bán kính 1
+      let sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+
+      // Đặt khối cầu ở trung tâm
+      sphere.position.set(0, 0, 0);
+
+      // Thêm khối cầu vào cảnh
+      scene.add(sphere);
+
+      //////////////////////////////////////////////
+      // Trong vòng lặp animation chính, cập nhật để khối cầu xoay theo cùng với toàn cảnh (universal)
+      renderer.setAnimationLoop(() => {
+        controls.update();
+        let t = clock.getElapsedTime() * 0.5;
+        gu.time.value = t * Math.PI;
+
+        // Tăng tốc độ quay của toàn cảnh
+        p.rotation.y = t * 0.2;
+
+        // Đồng bộ xoay khối cầu với cảnh
+        sphere.rotation.y = t * 0.2; // Xoay khối cầu theo trục y (cùng tốc độ với p)
+
+        animateMeteors(); // Cập nhật vị trí sao băng
+
+        renderer.render(scene, camera);
+      });
+
+      // Tạo nhiều sao băng
+      for (let i = 0; i < 10; i++) {
+        createMeteor();
+      }
+    </script>
+  </body>
+</html>
