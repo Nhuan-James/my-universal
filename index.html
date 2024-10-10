@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Three.js Example</title>
+    <title>Em Bé Thỏ &#10084</title>
     <style>
       body {
         margin: 0;
       }
+      
       canvas {
         display: block;
       }
@@ -17,7 +18,22 @@
     <script type="module">
       import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
       import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls";
+      
+      // Tạo đối tượng âm thanh
+      let music = new Audio('nhac.mp3');
+      music.loop = true; // Nhạc sẽ lặp lại liên tục
 
+      // Hỏi người dùng có muốn bật nhạc không
+      let playMusic = window.confirm("Bạn có muốn mở nhạc không?");
+
+      if (playMusic) {
+        // Nếu người dùng chọn "Có", phát nhạc
+        music.play().catch(function (error) {
+          console.error("Lỗi phát nhạc:", error);
+        });
+      }
+
+      
       // Paste your JavaScript code here
       console.clear();
 
