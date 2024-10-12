@@ -12,28 +12,55 @@
       canvas {
         display: block;
       }
+      #playMusicBtn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
+    <button id="playMusicBtn">Bật nhạc</button> <!-- Nút tương tác -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="module">
       import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
       import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls";
       
-      
-      let music = new Audio("nhac.mp3");
-      music.loop = true; // Nhạc sẽ lặp lại liên tục
+      let music = new Audio('nhac.mp3');
+      music.loop = true;
 
-      // Hỏi người dùng có muốn bật nhạc không
-      let playMusic = window.confirm("Bé có muốn mở nhạc không?");
+      // Bắt sự kiện khi người dùng nhấp vào nút
+      document.getElementById('playMusicBtn').addEventListener('click', () => {
+        Swal.fire({
+          title: 'Do you want to play music in the background?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Yes',
+          cancelButtonText: 'No'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            music.play().then(() => {
+              console.log("Nhạc đang phát");
 
-      if (playMusic) {
-        song.play().then(() => {
-          console.log("Nhạc đang phát");
-        }).catch(function(error) {
-          console.error("Lỗi phát nhạc:", error);
-          alert("Không thể phát nhạc. Vui lòng kiểm tra đường dẫn đến tệp âm thanh..");
+              // Sau khi nhạc bắt đầu phát, ẩn nút đi
+              document.getElementById('playMusicBtn').style.display = 'none';
+            }).catch(function(error) {
+              console.error("Lỗi phát nhạc:", error);
+              alert("Không thể phát nhạc. Vui lòng kiểm tra đường dẫn đến tệp âm thanh.");
+            });
+          }
+          else {
+            document.getElementById('playMusicBtn').style.display = 'none';
+          }
         });
-      }
+      });
+
 
 
       
