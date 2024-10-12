@@ -15,15 +15,13 @@
     </style>
   </head>
   <body>
-    <audio class="song">
-        <source src="./music/nhac.mp3" type="audio/mpeg">
-    </audio>
     <script type="module">
       import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
       import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls";
       
       
-      song.loop = true; // Nhạc sẽ lặp lại liên tục
+      let music = new Audio("nhac.mp3");
+      music.loop = true; // Nhạc sẽ lặp lại liên tục
 
       // Hỏi người dùng có muốn bật nhạc không
       let playMusic = window.confirm("Bé có muốn mở nhạc không?");
